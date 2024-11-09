@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { User, Settings, Folder } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { listFiles, deleteFile } from '../utils/storage';
-import { doc, updateDoc } from 'firebase/firestore'; // Importar doc y updateDoc
-import { db } from '../lib/firebase'; // Importar db
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { FileUploadButton } from '../components/FileUploadButton';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { FolderManagementDialog } from '../components/FolderManagementDialog';
@@ -15,6 +15,7 @@ import { FileCard } from '../components/FileCard';
 import { FolderCard } from '../components/FolderCard';
 import { useSpring, animated } from '@react-spring/web';
 import { FileItem, FileMetadata } from '../types';
+import { AdminFilters } from '../components/AdminFilters';
 
 export const Dashboard = () => {
   const { currentPath = '' } = useParams();
@@ -53,6 +54,7 @@ export const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
+      console.log('Loading content for path:', currentPath);
       const { items, folders } = await listFiles(currentPath);
       const formattedItems = items.map((item) => ({
         ...item,
@@ -83,13 +85,13 @@ export const Dashboard = () => {
   };
 
   useEffect(() => {
+    console.log('Current Path:', currentPath);
     loadContent();
   }, [currentPath]);
 
   const handleFolderClick = (path: string) => {
     navigate(`/folder/${path}`);
   };
-
   const handleDeleteFile = async (file: FileItem) => {
     if (!confirm('Are you sure you want to delete this file?')) return;
 
@@ -143,7 +145,6 @@ export const Dashboard = () => {
 
   const paths = currentPath ? currentPath.split('/') : [];
   const isRoot = paths.length === 0;
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -186,8 +187,8 @@ export const Dashboard = () => {
           user={currentUser}
           profileData={profileData}
           onUpdateProfile={handleUpdateProfile}
-          onPhotoUpload={() => {}} // Agregar esta propiedad
-          uploadingPhoto={false} // Agregar esta propiedad
+          onPhotoUpload={() => {}}
+          uploadingPhoto={false}
           userRole={userRole}
         />
       )}
@@ -195,10 +196,12 @@ export const Dashboard = () => {
         <FolderManagementDialog
           isOpen={showFolderManagement}
           onClose={() => setShowFolderManagement(false)}
+          currentPath={currentPath} // Asegúrate de pasar currentPath
         />
       )}
 
       {userRole === 'admin' && isRoot && <UserManagement />}
+      {userRole === 'admin' && isRoot && <AdminFilters />}
       {userRole === 'student' && !isRoot && (
         <FileUploadButton
           career={paths[0] || ''}
