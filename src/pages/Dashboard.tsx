@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { User, Settings, Folder } from 'lucide-react';
+import { User, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { listFiles, deleteFile } from '../utils/storage';
+import { listFiles, deleteFile, createFolder, renameFolder, removeFolder } from '../utils/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { FileUploadButton } from '../components/FileUploadButton';
 import { Breadcrumb } from '../components/Breadcrumb';
-import { FolderManagementDialog } from '../components/FolderManagementDialog';
+import { ContentPanel } from '../components/ContentPanel';
 import { UserManagement } from '../components/UserManagement';
 import { ProfileDialog } from '../components/ProfileDialog';
 import { CommentModal } from '../components/CommentModal';
-import { FileCard } from '../components/FileCard';
-import { FolderCard } from '../components/FolderCard';
+import { FolderManagementDialog } from '../components/FolderManagementDialog';
 import { useSpring, animated } from '@react-spring/web';
-import { FileItem, FileMetadata } from '../types';
+import { FileItem, FileMetadata, FolderItem } from '../types';
 import { AdminFilters } from '../components/AdminFilters';
 
 export const Dashboard = () => {
@@ -35,12 +34,14 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [folders, setFolders] = useState<any[]>([]);
-  const [showFolderManagement, setShowFolderManagement] = useState(false);
+  const [folders, setFolders] = useState<FolderItem[]>([]);
   const [showProfile, setShowProfile] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
   const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
+  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
+  const [folderToRename, setFolderToRename] = useState<string | null>(null);
   const buttonSpring = useSpring({
     from: { backgroundColor: 'rgb(30, 64, 175)' },
     to: {
@@ -63,15 +64,15 @@ export const Dashboard = () => {
           id: item.id,
           name: item.name,
           path: item.fullPath,
-          size: item.metadata.size,
-          type: item.metadata.type,
-          uploadedBy: item.metadata.uploadedBy,
-          uploaderName: item.metadata.uploaderName,
-          career: item.metadata.career,
-          subject: item.metadata.subject,
-          academicYear: item.metadata.academicYear,
-          comments: item.metadata.comments,
-          uploadedAt: item.metadata.uploadedAt
+          size: item.metadata?.size || 0,
+          type: item.metadata?.type,
+          uploadedBy: item.metadata?.uploadedBy,
+          uploaderName: item.metadata?.uploaderName,
+          career: item.metadata?.career,
+          subject: item.metadata?.subject,
+          academicYear: item.metadata?.academicYear,
+          comments: item.metadata?.comments,
+          uploadedAt: item.metadata?.uploadedAt
         }
       }));
       setFiles(formattedItems);
@@ -88,10 +89,10 @@ export const Dashboard = () => {
     console.log('Current Path:', currentPath);
     loadContent();
   }, [currentPath]);
-
   const handleFolderClick = (path: string) => {
     navigate(`/folder/${path}`);
   };
+
   const handleDeleteFile = async (file: FileItem) => {
     if (!confirm('Are you sure you want to delete this file?')) return;
 
@@ -103,7 +104,39 @@ export const Dashboard = () => {
       setError('Failed to delete file');
     }
   };
-  
+
+  const handleCreateFolder = async (folderName: string) => {
+    try {
+      await createFolder(currentPath, folderName);
+      await loadContent();
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      setError('Failed to create folder');
+    }
+  };
+
+  const handleRenameFolder = async (oldName: string, newName: string) => {
+    try {
+      await renameFolder(currentPath, oldName, newName);
+      await loadContent();
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      setError('Failed to rename folder');
+    }
+  };
+
+  const handleDeleteFolder = async (path: string) => {
+    if (!confirm('Are you sure you want to delete this folder?')) return;
+
+    try {
+      await removeFolder(path);
+      await loadContent();
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      setError('Failed to delete folder');
+    }
+  };
+
   const handleUpdateProfile = async (firstName: string, lastName: string) => {
     if (!currentUser) return;
 
@@ -126,6 +159,10 @@ export const Dashboard = () => {
     }
   };
 
+  const toggleUserManagement = () => {
+    setShowUserManagement((prev) => !prev);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
@@ -146,97 +183,69 @@ export const Dashboard = () => {
   const paths = currentPath ? currentPath.split('/') : [];
   const isRoot = paths.length === 0;
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Breadcrumb paths={paths} onNavigate={handleFolderClick} />
-        <div className="flex gap-2">
-          <animated.button
-            style={buttonSpring}
-            onClick={() => setShowProfile(true)}
-            className="px-4 py-2 rounded flex items-center gap-2"
-          >
-            <User size={20} />
-            Profile
-          </animated.button>
-          {(userRole === 'teacher' || userRole === 'admin') && (
+    <div className="flex min-h-screen">
+      <div className="flex-1 space-y-6">
+        <div className="flex justify-between items-center p-4">
+          <Breadcrumb paths={paths} onNavigate={handleFolderClick} />
+          <div className="flex gap-2">
             <animated.button
               style={buttonSpring}
-              onClick={() => setShowFolderManagement(true)}
+              onClick={() => setShowProfile(true)}
               className="px-4 py-2 rounded flex items-center gap-2"
             >
-              <Folder size={20} />
-              Manage Folders
+              <User size={20} />
+              Profile
             </animated.button>
-          )}
-          {userRole === 'admin' && isRoot && (
-            <animated.button
-              style={buttonSpring}
-              onClick={() => navigate('/admin')}
-              className="px-4 py-2 rounded flex items-center gap-2"
-            >
-              <Settings size={20} />
-              Admin Panel
-            </animated.button>
-          )}
+            {userRole === 'admin' && (
+              <animated.button
+                style={buttonSpring}
+                onClick={toggleUserManagement}
+                className="px-4 py-2 rounded flex items-center gap-2"
+              >
+                <Settings size={20} />
+                Administración de usuarios
+              </animated.button>
+            )}
+          </div>
         </div>
-      </div>
-      {showProfile && (
-        <ProfileDialog
-          isOpen={showProfile}
-          onClose={() => setShowProfile(false)}
-          user={currentUser}
-          profileData={profileData}
-          onUpdateProfile={handleUpdateProfile}
-          onPhotoUpload={() => {}}
-          uploadingPhoto={false}
-          userRole={userRole}
-        />
-      )}
-      {showFolderManagement && (
-        <FolderManagementDialog
-          isOpen={showFolderManagement}
-          onClose={() => setShowFolderManagement(false)}
-          currentPath={currentPath} // Asegúrate de pasar currentPath
-        />
-      )}
 
-      {userRole === 'admin' && isRoot && <UserManagement />}
-      {userRole === 'admin' && isRoot && <AdminFilters />}
-      {userRole === 'student' && !isRoot && (
-        <FileUploadButton
-          career={paths[0] || ''}
-          subject={paths[1] || ''}
-          academicYear={paths[2] || ''}
-          onUploadComplete={loadContent}
-        />
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {folders.map((folder) => (
-          <FolderCard
-            key={folder.fullPath}
-            folder={folder}
-            onClick={handleFolderClick}
+        {showProfile && (
+          <ProfileDialog
+            isOpen={showProfile}
+            onClose={() => setShowProfile(false)}
+            user={currentUser}
+            profileData={profileData}
+            onUpdateProfile={handleUpdateProfile}
+            onPhotoUpload={() => {}}
+            uploadingPhoto={false}
+            userRole={userRole}
           />
-        ))}
+        )}
 
-        {files.map((file) => (
-          <FileCard
-            key={file.fullPath}
-            file={file}
-            onDelete={handleDeleteFile}
-            onShowComments={(file) => {
-              setSelectedFile(file.metadata);
-              setShowComments(true);
-            }}
+        {userRole === 'admin' && showUserManagement && <UserManagement />}
+        {userRole === 'admin' && isRoot && <AdminFilters />}
+        {userRole === 'student' && !isRoot && (
+          <FileUploadButton
+            career={paths[0] || ''}
+            subject={paths[1] || ''}
+            academicYear={paths[2] || ''}
+            onUploadComplete={loadContent}
           />
-        ))}
+        )}
+
+        <ContentPanel
+          currentPath={currentPath}
+          files={files}
+          folders={folders}
+          onFileClick={(file: FileItem) => { /* lógica para manejar archivos */ }}
+          onFolderClick={handleFolderClick}
+          onDeleteFile={handleDeleteFile}
+          onCommentClick={(file: FileItem) => {
+            setSelectedFile(file.metadata as FileMetadata);
+            setShowComments(true);
+          }}
+        />
       </div>
-      {folders.length === 0 && files.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <p>This folder is empty</p>
-        </div>
-      )}
 
       {selectedFile && (
         <CommentModal
@@ -250,6 +259,12 @@ export const Dashboard = () => {
           canEdit={userRole === 'teacher' || userRole === 'admin'}
         />
       )}
+
+      <FolderManagementDialog
+        isOpen={showCreateFolderDialog}
+        onClose={() => setShowCreateFolderDialog(false)}
+        currentPath={currentPath}
+      />
     </div>
   );
 };

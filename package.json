@@ -13,6 +13,7 @@
     "start": "npm run build:css && vite"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.2",
     "@react-spring/web": "^9.7.3",
     "firebase": "^10.14.1",

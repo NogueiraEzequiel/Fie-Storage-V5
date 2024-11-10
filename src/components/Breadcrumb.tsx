@@ -18,7 +18,6 @@ export const Breadcrumb = ({ paths, onNavigate }: BreadcrumbProps) => {
         <Home size={16} className="mr-1" />
         Home
       </Link>
-      
       {paths.map((segment, index) => (
         <div key={index} className="flex items-center">
           <ChevronRight size={16} className="mx-2 text-gray-400" />
