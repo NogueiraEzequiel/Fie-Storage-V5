@@ -1,5 +1,5 @@
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
-import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore'; // Asegurar que 'updateDoc' esté incluido
+import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
 import { storage, db } from '../lib/firebase';
 import { ALLOWED_FILE_TYPES, FileMetadata, FileItem, FolderItem } from '../types';
 
@@ -57,31 +57,35 @@ export const listFiles = async (path: string) => {
     const result = await listAll(folderRef);
 
     const items: FileItem[] = await Promise.all(
-      result.items.map(async (item) => {
-        const downloadURL = await getDownloadURL(item);
-        const fileQuery = query(
-          collection(db, 'studentWorks'),
-          where('path', '==', item.fullPath),
-          orderBy('createdAt', 'desc')
-        );
+      result.items
+        .filter((item) => !item.fullPath.endsWith('/.keep') && item.name !== 'files') // Filtrar el archivo .keep y la carpeta files
+        .map(async (item) => {
+          const downloadURL = await getDownloadURL(item);
+          const fileQuery = query(
+            collection(db, 'studentWorks'),
+            where('path', '==', item.fullPath),
+            orderBy('createdAt', 'desc')
+          );
 
-        const fileSnapshot = await getDocs(fileQuery);
-        const fileData = fileSnapshot.docs[0]?.data() as FileMetadata;
+          const fileSnapshot = await getDocs(fileQuery);
+          const fileData = fileSnapshot.docs[0]?.data() as FileMetadata;
 
-        return {
-          id: fileSnapshot.docs[0]?.id || '',
-          name: item.name,
-          fullPath: item.fullPath,
-          downloadURL,
-          metadata: fileData
-        };
-      })
+          return {
+            id: fileSnapshot.docs[0]?.id || '',
+            name: item.name,
+            fullPath: item.fullPath,
+            downloadURL,
+            metadata: fileData
+          };
+        })
     );
 
-    const folders: FolderItem[] = result.prefixes.map((prefix) => ({
-      name: prefix.name,
-      fullPath: prefix.fullPath
-    }));
+    const folders: FolderItem[] = result.prefixes
+      .filter((prefix) => prefix.name !== 'files') // Filtrar la carpeta files
+      .map((prefix) => ({
+        name: prefix.name,
+        fullPath: prefix.fullPath
+      }));
 
     return { items, folders };
   } catch (error: any) {
@@ -91,14 +95,12 @@ export const listFiles = async (path: string) => {
 };
 
 export const createFolder = async (path: string, folderName: string) => {
-  if (!path || !folderName) {
-    throw new Error("Path and folder name must be provided.");
+  if (!folderName) {
+    throw new Error("Folder name must be provided.");
   }
 
-  console.log('Creating folder with path:', path, 'and folder name:', folderName);
-
-  const folderRef = ref(storage, `files/${path}/${folderName}/`);
-  const emptyBlob = new Blob([], { type: 'application/json' });
+  const folderRef = ref(storage, `files/${path}/${folderName}/.keep`);
+  const emptyBlob = new Blob([], { type: 'application/octet-stream' });
   await uploadBytes(folderRef, emptyBlob);
 
   await addDoc(collection(db, 'studentWorks'), {
@@ -121,11 +123,9 @@ export const renameFolder = async (currentPath: string, oldName: string, newName
   const oldFolderPath = `${currentPath}/${oldName}`;
   const newFolderPath = `${currentPath}/${newName}`;
 
-  // List all items in the old folder
   const oldFolderRef = ref(storage, `files/${oldFolderPath}`);
   const result = await listAll(oldFolderRef);
 
-  // Move each item to the new folder
   for (const item of result.items) {
     const itemRef = ref(storage, item.fullPath);
     const itemDownloadURL = await getDownloadURL(itemRef);
@@ -138,7 +138,6 @@ export const renameFolder = async (currentPath: string, oldName: string, newName
     await deleteObject(itemRef);
   }
 
-  // Update Firestore documents
   const fileQuery = query(
     collection(db, 'studentWorks'),
     where('path', '>=', `files/${oldFolderPath}`),
@@ -151,9 +150,7 @@ export const renameFolder = async (currentPath: string, oldName: string, newName
   fileSnapshot.docs.forEach((doc) => {
     const docRef = doc.ref;
     const newDocPath = doc.data().path.replace(oldFolderPath, newFolderPath);
-    batch.update(docRef, { path: newDocPath });
-    // Opcional: actualizar otros campos si es necesario
-    updateDoc(docRef, { name: newName });
+    batch.update(docRef, { path: newDocPath, name: newName });
   });
 
   await batch.commit();
@@ -167,12 +164,10 @@ export const removeFolder = async (folderPath: string) => {
   const folderRef = ref(storage, `files/${folderPath}`);
   const result = await listAll(folderRef);
 
-  // Delete each item in the folder
   for (const item of result.items) {
     await deleteObject(item);
   }
 
-  // Delete the Firestore documents
   const fileQuery = query(
     collection(db, 'studentWorks'),
     where('path', '>=', `files/${folderPath}`),

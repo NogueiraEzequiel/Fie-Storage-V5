@@ -3,7 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
-import { Dashboard } from './pages/Dashboard';
+import Dashboard from './pages/Dashboard';
 import { Profile } from './pages/Profile';
 import { PrivateRoute } from './components/PrivateRoute';
 import { FileUpload } from './pages/FileUpload';
