@@ -8,11 +8,12 @@ import { FolderManagementDialog } from '../components/FolderManagementDialog';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { FolderCard } from '../components/FolderCard';
 import { FileCard } from '../components/FileCard';
-import { HardHat, Settings, UserRoundCog, FolderPlus } from 'lucide-react'; // Eliminamos los íconos no utilizados
+import { HardHat, Settings, UserRoundCog, FolderPlus, UploadCloud } from 'lucide-react'; // Añadimos el icono UploadCloud
 import { AdminFilters } from '../components/AdminFilters'; // Importa el componente AdminFilters
 import { UserManagement } from '../components/UserManagement'; // Importa el componente de administración de usuarios
 import { doc, getDoc, setDoc } from 'firebase/firestore'; // Volvemos a importar setDoc para la creación de documentos
 import { db } from '../lib/firebase'; // Importa la instancia de Firestore
+import { FileUploadButton } from '../components/FileUploadButton'; // Importa el componente FileUploadButton
 
 export const Dashboard = () => {
   const { '*': currentPathParam = '' } = useParams();
@@ -34,6 +35,7 @@ export const Dashboard = () => {
   const [careers, setCareers] = useState<any>({}); // Estado para almacenar las carreras disponibles
   const [showAdminFilters, setShowAdminFilters] = useState(false); // Estado para controlar la visibilidad del menú de Admin
   const [showUserManagement, setShowUserManagement] = useState(false); // Estado para controlar la visibilidad del menú de administración de usuarios
+  const [showUpload, setShowUpload] = useState(false); // Estado para mostrar/ocultar el componente de carga de archivos
 
   const loadContent = async () => {
     if (!currentUser) {
@@ -78,10 +80,10 @@ export const Dashboard = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     loadContent();
   }, [currentUser, currentPath]);
-
   useEffect(() => {
     const loadCareers = async () => {
       const docRef = doc(db, 'config', 'careers');
@@ -167,7 +169,6 @@ export const Dashboard = () => {
       setFilteredFolders(folders); 
     }
   };
-
   // Función para manejar la visibilidad del menú AdminFilters
   const toggleAdminFilters = () => {
     setShowAdminFilters(!showAdminFilters);
@@ -176,6 +177,11 @@ export const Dashboard = () => {
   // Función para manejar la visibilidad del menú de Administración de Usuarios
   const toggleUserManagement = () => {
     setShowUserManagement(!showUserManagement);
+  };
+
+  // Función para manejar la visibilidad del componente de carga de archivos
+  const toggleUpload = () => {
+    setShowUpload(!showUpload);
   };
 
   if (loading) {
@@ -194,6 +200,7 @@ export const Dashboard = () => {
       </div>
     );
   }
+
   const paths = currentPath ? currentPath.split('/') : [];
   return (
     <div className="flex min-h-screen">
@@ -243,8 +250,28 @@ export const Dashboard = () => {
               </select>
               <HardHat className="w-6 h-6 text-blue-800 absolute right-2" /> {/* Ícono dentro del select */}
             </div>
+
+            {/* Botón para mostrar/ocultar componente de carga de archivos */}
+            <button
+              onClick={toggleUpload}
+              className="px-4 py-2 rounded flex items-center gap-2 bg-blue-800 text-white"
+            >
+              <UploadCloud className="w-6 h-6" />
+              {showUpload ? 'Cerrar Carga de Archivos' : 'Subir Archivos'}
+            </button>
           </div>
         </div>
+
+        {showUpload && (
+          <div className="p-4 border rounded-lg bg-gray-50">
+            <FileUploadButton
+              career={selectedCareer}
+              subject={paths.length > 1 ? paths[1] : ''}
+              academicYear={paths.length > 2 ? paths[2] : ''}
+              onUploadComplete={loadContent}
+            />
+          </div>
+        )}
 
         {showAdminFilters && (
           <div className="p-4">
@@ -257,7 +284,6 @@ export const Dashboard = () => {
             <UserManagement />
           </div>
         )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg-grid-cols-3 gap-4">
           {filteredFolders.map((folder) => (
             <FolderCard
