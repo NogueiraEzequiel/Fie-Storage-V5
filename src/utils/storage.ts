@@ -9,7 +9,7 @@ export const uploadFile = async (file: File, path: string, metadata: FileMetadat
       throw new Error('File type not allowed. Please upload PDF, Word, or image files only.');
     }
 
-    const storageRef = ref(storage, `files/${path}`);
+    const storageRef = ref(storage, path); // Eliminado `files/`
     const snapshot = await uploadBytes(storageRef, file, {
       customMetadata: {
         uploadedBy: metadata.uploadedBy,
@@ -28,7 +28,7 @@ export const uploadFile = async (file: File, path: string, metadata: FileMetadat
       fileSize: file.size,
       fileType: file.type,
       downloadURL,
-      path: `files/${path}`,
+      path: path, // Eliminado `files/`
       createdAt: new Date().toISOString(),
       comments: []
     });
@@ -42,7 +42,7 @@ export const uploadFile = async (file: File, path: string, metadata: FileMetadat
 
 export const deleteFile = async (path: string, fileId: string) => {
   try {
-    const storageRef = ref(storage, path);
+    const storageRef = ref(storage, path); // Sin `files/`
     await deleteObject(storageRef);
     await deleteDoc(doc(db, 'studentWorks', fileId));
   } catch (error: any) {
@@ -53,7 +53,7 @@ export const deleteFile = async (path: string, fileId: string) => {
 
 export const listFiles = async (path: string) => {
   try {
-    const folderRef = ref(storage, `files/${path}`);
+    const folderRef = ref(storage, path); // Sin `files/`
     const result = await listAll(folderRef);
 
     const items: FileItem[] = await Promise.all(
@@ -93,20 +93,19 @@ export const listFiles = async (path: string) => {
     throw new Error(error.message || 'Failed to list files');
   }
 };
-
 export const createFolder = async (path: string, folderName: string) => {
   if (!folderName) {
     throw new Error("Folder name must be provided.");
   }
 
-  const folderRef = ref(storage, `files/${path}/${folderName}/.keep`);
+  const folderRef = ref(storage, `${path}/${folderName}/.keep`); // Sin `files/`
   const emptyBlob = new Blob([], { type: 'application/octet-stream' });
   await uploadBytes(folderRef, emptyBlob);
 
   await addDoc(collection(db, 'studentWorks'), {
     name: folderName,
     type: 'folder',
-    path: `files/${path}/${folderName}`,
+    path: `${path}/${folderName}`, // Sin `files/`
     createdAt: new Date().toISOString(),
     permissions: {
       read: [],
@@ -123,7 +122,7 @@ export const renameFolder = async (currentPath: string, oldName: string, newName
   const oldFolderPath = `${currentPath}/${oldName}`;
   const newFolderPath = `${currentPath}/${newName}`;
 
-  const oldFolderRef = ref(storage, `files/${oldFolderPath}`);
+  const oldFolderRef = ref(storage, oldFolderPath); // Sin `files/`
   const result = await listAll(oldFolderRef);
 
   for (const item of result.items) {
@@ -140,8 +139,8 @@ export const renameFolder = async (currentPath: string, oldName: string, newName
 
   const fileQuery = query(
     collection(db, 'studentWorks'),
-    where('path', '>=', `files/${oldFolderPath}`),
-    where('path', '<=', `files/${oldFolderPath}\uf8ff`)
+    where('path', '>=', oldFolderPath), // Sin `files/`
+    where('path', '<=', `${oldFolderPath}\uf8ff`)
   );
 
   const fileSnapshot = await getDocs(fileQuery);
@@ -161,7 +160,7 @@ export const removeFolder = async (folderPath: string) => {
     throw new Error("Folder path must be provided.");
   }
 
-  const folderRef = ref(storage, `files/${folderPath}`);
+  const folderRef = ref(storage, folderPath); // Sin `files/`
   const result = await listAll(folderRef);
 
   for (const item of result.items) {
@@ -170,8 +169,8 @@ export const removeFolder = async (folderPath: string) => {
 
   const fileQuery = query(
     collection(db, 'studentWorks'),
-    where('path', '>=', `files/${folderPath}`),
-    where('path', '<=', `files/${folderPath}\uf8ff`)
+    where('path', '>=', folderPath), // Sin `files/`
+    where('path', '<=', `${folderPath}\uf8ff`)
   );
 
   const fileSnapshot = await getDocs(fileQuery);

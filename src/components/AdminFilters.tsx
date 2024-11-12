@@ -38,12 +38,12 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
   useEffect(() => {
     // Cargar todas las carpetas reales desde la ruta principal
     const listAllFolders = async () => {
-      const { folders } = await listFiles('files'); // Ajustamos esta función para cargar carpetas reales
-      setAllFolders(folders);
+      const { folders } = await listFiles(''); // Ajustamos esta función para cargar carpetas reales desde la raíz
+      const visibleFolders = folders.filter(folder => folder.name !== 'profile-photos'); // Filtrar carpeta 'profile-photos'
+      setAllFolders(visibleFolders);
     };
     listAllFolders();
   }, []);
-
   const handleCareerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     if (pendingChanges) {
       setPendingChanges(false); // Restablecer cambios pendientes al cambiar de carrera
@@ -112,7 +112,6 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
       setShowSuccessMessage('');
     }, 2000); // Ocultar el mensaje después de 2 segundos
   };
-
   return (
     <div className="max-w-full mx-auto p-8 bg-white rounded-lg shadow-md h-full overflow-auto">
       <h2 className="text-3xl font-bold mb-6 text-center text-blue-800">Administrar Carreras</h2>
@@ -179,7 +178,6 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
           </button>
         </div>
       )}
-
       {showAddCareerModal && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
@@ -210,6 +208,7 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
           </div>
         </div>
       )}
+
       {showDeleteCareerModal && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"

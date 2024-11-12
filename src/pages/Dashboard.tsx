@@ -17,7 +17,7 @@ import { FileUploadButton } from '../components/FileUploadButton'; // Importa el
 
 export const Dashboard = () => {
   const { '*': currentPathParam = '' } = useParams();
-  const currentPath = currentPathParam ? currentPathParam.replace(/^files\//, '') : '';  // Eliminar 'files/' de currentPath
+  const currentPath = currentPathParam ? currentPathParam : '';  // Comienza desde la raíz directamente
   const navigate = useNavigate();
   const { currentUser, userRole } = useAuth(); // Obtener el usuario actual y su rol del contexto de autenticación
 
@@ -36,7 +36,6 @@ export const Dashboard = () => {
   const [showAdminFilters, setShowAdminFilters] = useState(false); // Estado para controlar la visibilidad del menú de Admin
   const [showUserManagement, setShowUserManagement] = useState(false); // Estado para controlar la visibilidad del menú de administración de usuarios
   const [showUpload, setShowUpload] = useState(false); // Estado para mostrar/ocultar el componente de carga de archivos
-
   const loadContent = async () => {
     if (!currentUser) {
       setError('User is not authenticated.');
@@ -46,14 +45,15 @@ export const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const { items, folders } = await listFiles(`files/${currentPath}`);
+      const { items, folders } = await listFiles(currentPath); // Listar archivos desde la ruta actual
+      const filteredFolders = folders.filter(folder => !folder.name.includes('profile-photos')); // Filtrar carpetas innecesarias
       const formattedItems = items.map(item => ({
         ...item,
         metadata: {
           ...item.metadata,
           id: item.id,
           name: item.name,
-          path: item.fullPath.replace(/^files\//, ''), 
+          path: item.fullPath, 
           size: item.metadata?.size || 0,
           type: item.metadata?.type,
           uploadedBy: item.metadata?.uploadedBy,
@@ -66,14 +66,8 @@ export const Dashboard = () => {
         }
       }));
       setFiles(formattedItems);
-      setFolders(folders.map(folder => ({
-        ...folder,
-        fullPath: folder.fullPath.replace(/^files\//, '')  
-      })));
-      setFilteredFolders(folders.map(folder => ({
-        ...folder,
-        fullPath: folder.fullPath.replace(/^files\//, '')  
-      }))); 
+      setFolders(filteredFolders);
+      setFilteredFolders(filteredFolders); 
     } catch (err: any) {
       setError(err.message || 'Failed to load content');
     } finally {
@@ -84,6 +78,7 @@ export const Dashboard = () => {
   useEffect(() => {
     loadContent();
   }, [currentUser, currentPath]);
+
   useEffect(() => {
     const loadCareers = async () => {
       const docRef = doc(db, 'config', 'careers');
@@ -96,7 +91,6 @@ export const Dashboard = () => {
     };
     loadCareers();
   }, []);
-
   const handleFolderClick = (path: string) => {
     navigate(`/folder/${path}`);
   };
@@ -118,7 +112,7 @@ export const Dashboard = () => {
     }
     try {
       if (!currentPath && folderName === 'files') return;
-      await createFolder(`files/${currentPath}`, folderName);
+      await createFolder(currentPath, folderName);
       await loadContent();
     } catch {
       setError('Failed to create folder');
@@ -131,7 +125,7 @@ export const Dashboard = () => {
       return;
     }
     try {
-      await renameFolder(`files/${currentPath}`, folderToRename, newName);
+      await renameFolder(currentPath, folderToRename, newName);
       await loadContent();
     } catch {
       setError('Failed to rename folder');
@@ -150,7 +144,7 @@ export const Dashboard = () => {
       return;
     }
     try {
-      await removeFolder(`files/${folderToDelete}`);
+      await removeFolder(folderToDelete);
       await loadContent();
     } catch {
       setError('Failed to delete folder');
@@ -158,7 +152,6 @@ export const Dashboard = () => {
       setFolderToDelete(null);
     }
   };
-
   // Función para manejar el cambio de carrera seleccionada
   const handleCareerChange = (career: string) => {
     setSelectedCareer(career);
@@ -169,6 +162,7 @@ export const Dashboard = () => {
       setFilteredFolders(folders); 
     }
   };
+
   // Función para manejar la visibilidad del menú AdminFilters
   const toggleAdminFilters = () => {
     setShowAdminFilters(!showAdminFilters);
@@ -200,7 +194,6 @@ export const Dashboard = () => {
       </div>
     );
   }
-
   const paths = currentPath ? currentPath.split('/') : [];
   return (
     <div className="flex min-h-screen">
@@ -265,6 +258,7 @@ export const Dashboard = () => {
         {showUpload && (
           <div className="p-4 border rounded-lg bg-gray-50">
             <FileUploadButton
+              currentPath={currentPath}
               career={selectedCareer}
               subject={paths.length > 1 ? paths[1] : ''}
               academicYear={paths.length > 2 ? paths[2] : ''}
@@ -289,9 +283,9 @@ export const Dashboard = () => {
             <FolderCard
               key={folder.fullPath}
               folder={folder}
-              onClick={() => handleFolderClick(folder.fullPath.replace(/^files\//, ''))}
+              onClick={() => handleFolderClick(folder.fullPath)}
               onRename={() => userRole === 'admin' && setFolderToRename(folder.name)}
-              onDelete={() => userRole === 'admin' && setFolderToDelete(folder.fullPath.replace(/^files\//, ''))}
+              onDelete={() => userRole === 'admin' && setFolderToDelete(folder.fullPath)}
             />
           ))}
           {files.map((file) => (
