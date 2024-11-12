@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Folder, Check, Trash2, Plus, PlusCircle, Trash } from 'lucide-react'; // Usamos los íconos correctos
+import { Folder, Check, Trash2, PlusCircle, Trash } from 'lucide-react'; // Usamos los íconos correctos
 import { FolderItem } from '../types';
 import { listFiles } from '../utils/storage';
 

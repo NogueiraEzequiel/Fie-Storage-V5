@@ -24,7 +24,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [folders, setFolders] = useState<FolderItem[]>([]);
+  const [folders, setFolders] = useState<FolderItem[]>([]); // Declaramos `folders` pero la usamos correctamente más adelante
   const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
@@ -66,7 +66,7 @@ export const Dashboard = () => {
         }
       }));
       setFiles(formattedItems);
-      setFolders(filteredFolders);
+      setFolders(filteredFolders); // Ahora se usa `setFolders` correctamente para evitar la advertencia
       setFilteredFolders(filteredFolders); 
     } catch (err: any) {
       setError(err.message || 'Failed to load content');
@@ -106,8 +106,8 @@ export const Dashboard = () => {
   };
 
   const handleCreateFolder = async (folderName: string) => {
-    if (!currentUser || userRole !== 'admin') {
-      setError('User is not authenticated or is not an admin.');
+    if (!currentUser || (userRole !== 'admin' && userRole !== 'student')) {
+      setError('User is not authenticated or is not authorized.');
       return;
     }
     try {
@@ -155,12 +155,8 @@ export const Dashboard = () => {
   // Función para manejar el cambio de carrera seleccionada
   const handleCareerChange = (career: string) => {
     setSelectedCareer(career);
-    if (career && careers[career]) {
-      const visibleFolders = folders.filter(folder => careers[career].Materias[folder.name]);
-      setFilteredFolders(visibleFolders);
-    } else {
-      setFilteredFolders(folders); 
-    }
+    setShowUpload(false); // Ocultar el área de carga de archivos al cambiar de carrera
+    navigate('/'); // Navegar a la raíz de Firebase Storage
   };
 
   // Función para manejar la visibilidad del menú AdminFilters
@@ -201,16 +197,42 @@ export const Dashboard = () => {
         <div className="flex justify-between items-center p-4">
           <Breadcrumb paths={paths} onNavigate={handleFolderClick} />
           <div className="flex gap-2 items-center">
+            {/* Menú Desplegable para Seleccionar Carrera */}
+            <div className="relative flex items-center gap-2 order-last">
+              <select
+                value={selectedCareer}
+                onChange={(e) => handleCareerChange(e.target.value)}
+                className="appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500 flex items-center"
+              >
+                <option value="">Seleccionar Carrera</option>
+                {Object.keys(careers).map(career => (
+                  <option key={career} value={career}>{career}</option>
+                ))}
+              </select>
+              <HardHat className="w-6 h-6 text-blue-800 absolute right-2" /> {/* Ícono dentro del select */}
+            </div>
+            {currentUser && userRole === 'student' && paths.length >= 2 && (
+              // Botón para mostrar/ocultar componente de creación de carpetas
+              <button
+                onClick={() => setShowCreateFolderDialog(true)}
+                className="px-4 py-2 rounded flex items-center gap-2 bg-blue-800 text-white"
+              >
+                <FolderPlus className="w-6 h-6" />
+                Crear Carpeta
+              </button>
+            )}
+            {currentUser && userRole === 'student' && paths.length >= 3 && (
+              // Botón para mostrar/ocultar componente de carga de archivos
+              <button
+                onClick={toggleUpload}
+                className="px-4 py-2 rounded flex items-center gap-2 bg-blue-800 text-white"
+              >
+                <UploadCloud className="w-6 h-6" />
+                {showUpload ? 'Cerrar Carga de Archivos' : 'Subir Archivos'}
+              </button>
+            )}
             {currentUser && userRole === 'admin' && (
               <>
-                {/* Botón de Crear Carpeta */}
-                <button
-                  onClick={() => setShowCreateFolderDialog(true)}
-                  className="px-4 py-2 rounded flex items-center gap-2 bg-blue-800 text-white"
-                >
-                  Crear Carpeta
-                  <FolderPlus className="w-6 h-6" />
-                </button>
                 {/* Botón para Mostrar/Ocultar AdminFilters */}
                 <button
                   onClick={toggleAdminFilters}
@@ -229,43 +251,23 @@ export const Dashboard = () => {
                 </button>
               </>
             )}
-            {/* Menú Desplegable para Seleccionar Carrera */}
-            <div className="relative flex items-center gap-2">
-              <select
-                value={selectedCareer}
-                onChange={(e) => handleCareerChange(e.target.value)}
-                className="appearance-none w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-gray-500 flex items-center"
-              >
-                <option value="">Seleccionar Carrera</option>
-                {Object.keys(careers).map(career => (
-                  <option key={career} value={career}>{career}</option>
-                ))}
-              </select>
-              <HardHat className="w-6 h-6 text-blue-800 absolute right-2" /> {/* Ícono dentro del select */}
-            </div>
-
-            {/* Botón para mostrar/ocultar componente de carga de archivos */}
-            <button
-              onClick={toggleUpload}
-              className="px-4 py-2 rounded flex items-center gap-2 bg-blue-800 text-white"
-            >
-              <UploadCloud className="w-6 h-6" />
-              {showUpload ? 'Cerrar Carga de Archivos' : 'Subir Archivos'}
-            </button>
           </div>
         </div>
-
         {showUpload && (
-          <div className="p-4 border rounded-lg bg-gray-50">
-            <FileUploadButton
-              currentPath={currentPath}
-              career={selectedCareer}
-              subject={paths.length > 1 ? paths[1] : ''}
-              academicYear={paths.length > 2 ? paths[2] : ''}
-              onUploadComplete={loadContent}
-            />
-          </div>
-        )}
+  <div className="p-4 border rounded-lg bg-gray-50 mt-4">
+    <FileUploadButton
+      currentPath={currentPath}
+      career={selectedCareer}
+      subject={paths.length > 1 ? paths[1] : ''}
+      academicYear={paths.length > 2 ? paths[2] : ''}
+      onUploadComplete={() => {
+        setShowUpload(false); // Ocultar el área de carga después de subir
+        loadContent(); // Recargar contenido
+      }}
+    />
+  </div>
+)}
+
 
         {showAdminFilters && (
           <div className="p-4">
@@ -303,13 +305,13 @@ export const Dashboard = () => {
       </div>
       {selectedFile && (
         <CommentModal
-          fileId={selectedFile.id}
+          fileId={selectedFile!.id} // Agregamos "!" para asegurar que no es null
           isOpen={showComments}
           onClose={() => {
             setShowComments(false);
             setSelectedFile(null);
           }}
-          currentGrade={selectedFile.grade}
+          currentGrade={selectedFile!.grade} // Agregamos "!" para asegurar que no es null
           canEdit={true}
         />
       )}
@@ -336,7 +338,7 @@ export const Dashboard = () => {
           onClose={() => setFolderToRename(null)}
           onCreateFolder={handleCreateFolder}
           onRenameFolder={handleRenameFolder} // Asegurar que handleRenameFolder se pasa correctamente
-          initialFolderName={folderToRename} // Pasar el nombre inicial para renombrar
+          initialFolderName={folderToRename || undefined} // Asegurar que no es null
         />
       )}
 
