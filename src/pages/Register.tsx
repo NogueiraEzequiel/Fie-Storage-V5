@@ -4,10 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
-import { auth } from '../lib/firebase'; // Importar auth correctamente
 
 const registerSchema = z.object({
+  firstName: z.string().min(1, 'El nombre es obligatorio'),
+  lastName: z.string().min(1, 'El apellido es obligatorio'),
   email: z.string()
     .email('Dirección de correo electrónico no válida')
     .refine(email => email.endsWith('@fie.undef.edu.ar'), {
@@ -22,13 +22,14 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-export const Register = () => {
+const Register = () => {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const { register: registerForm, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema)
   });
 
@@ -36,77 +37,97 @@ export const Register = () => {
     setLoading(true);
     try {
       setError('');
-      const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
-      if (user) {
-        await registerUser("", "", user.email || "", user.uid); // Registrar datos iniciales del usuario
-      }
-      navigate('/complete-profile'); // Redirigir a la página para completar el perfil
-    } catch (err: unknown) {
-      console.error('Error en la creación de la cuenta:', err);
-      if (err instanceof Error) {
-        if (err.message.includes('auth/email-already-in-use')) {
-          setError('El correo electrónico ya está en uso');
-        } else {
-          setError('Error al crear la cuenta');
-        }
-      } else {
-        setError('Error desconocido');
-      }
+      await registerUser(data.firstName, data.lastName, data.email, data.password);
+      setSuccessMessage('Usuario Registrado Exitosamente');
+      setTimeout(() => navigate('/'), 2000); // Redirigir después de 2 segundos
+    } catch (err) {
+      setError('Fallo al crear la cuenta');
     } finally {
       setLoading(false);
     }
   };
+
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Registrarse</h2>
-      {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
-      
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label className="block mb-1">Correo Electrónico (@fie.undef.edu.ar)</label>
-          <input
-            type="email"
-            {...registerForm('email')}
-            className="w-full p-2 border rounded"
-          />
-          {errors.email && (
-            <span className="text-red-500 text-sm">{errors.email.message}</span>
-          )}
-        </div>
+    <div className="flex items-start justify-center min-h-screen bg-gray-50 pt-10">
+      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-6 text-center">Registro</h2>
+        {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
+        {successMessage && <div className="bg-green-100 text-green-700 p-3 mb-4 rounded">{successMessage}</div>}
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <label className="block mb-1 text-gray-700">Nombre</label>
+            <input
+              type="text"
+              {...register('firstName')}
+              className="w-full p-2 border rounded"
+            />
+            {errors.firstName && (
+              <span className="text-red-500 text-sm">{errors.firstName.message}</span>
+            )}
+          </div>
 
-        <div>
-          <label className="block mb-1">Contraseña</label>
-          <input
-            type="password"
-            {...registerForm('password')}
-            className="w-full p-2 border rounded"
-          />
-          {errors.password && (
-            <span className="text-red-500 text-sm">{errors.password.message}</span>
-          )}
-        </div>
+          <div>
+            <label className="block mb-1 text-gray-700">Apellido</label>
+            <input
+              type="text"
+              {...register('lastName')}
+              className="w-full p-2 border rounded"
+            />
+            {errors.lastName && (
+              <span className="text-red-500 text-sm">{errors.lastName.message}</span>
+            )}
+          </div>
 
-        <div>
-          <label className="block mb-1">Confirmar Contraseña</label>
-          <input
-            type="password"
-            {...registerForm('confirmPassword')}
-            className="w-full p-2 border rounded"
-          />
-          {errors.confirmPassword && (
-            <span className="text-red-500 text-sm">{errors.confirmPassword.message}</span>
-          )}
-        </div>
+          <div>
+            <label className="block mb-1 text-gray-700">Correo Electrónico (@fie.undef.edu.ar)</label>
+            <input
+              type="email"
+              {...register('email')}
+              className="w-full p-2 border rounded"
+            />
+            {errors.email && (
+              <span className="text-red-500 text-sm">{errors.email.message}</span>
+            )}
+          </div>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-          disabled={loading}
-        >
-          {loading ? 'Registrando...' : 'Registrarse'}
-        </button>
-      </form>
+          <div>
+            <label className="block mb-1 text-gray-700">Contraseña</label>
+            <input
+              type="password"
+              {...register('password')}
+              className="w-full p-2 border rounded"
+            />
+            {errors.password && (
+              <span className="text-red-500 text-sm">{errors.password.message}</span>
+            )}
+          </div>
+
+          <div>
+            <label className="block mb-1 text-gray-700">Confirmar Contraseña</label>
+            <input
+              type="password"
+              {...register('confirmPassword')}
+              className="w-full p-2 border rounded"
+            />
+            {errors.confirmPassword && (
+              <span className="text-red-500 text-sm">{errors.confirmPassword.message}</span>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 flex items-center justify-center"
+            disabled={loading}
+          >
+            {loading ? (
+              <svg className="animate-spin h-5 w-5 mr-3 border-t-2 border-white rounded-full" viewBox="0 0 24 24"></svg>
+            ) : 'Registrarse'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };
+
+export default Register;
