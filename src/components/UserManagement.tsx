@@ -50,10 +50,14 @@ export const UserManagement = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
 
     try {
+      // Eliminar el documento del usuario de Firestore
       await deleteDoc(doc(db, 'users', userId));
+      // Eliminar cualquier otra información relacionada con el usuario
+      // Por ejemplo, eliminar documentos, configuraciones, etc. (Agregar lógica aquí si es necesario)
+
       setUsers(users.filter(user => user.uid !== userId));
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -71,17 +75,17 @@ export const UserManagement = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">User Management</h2>
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <h2 className="text-2xl font-semibold mb-4">Administración de Usuarios</h2>
       
       <div className="space-y-4">
         {users.map(user => (
           <div
             key={user.uid}
-            className="flex items-center justify-between p-4 bg-gray-50 rounded"
+            className="flex items-center justify-between p-4 bg-gray-100 rounded-md shadow-sm"
           >
             <div>
-              <p className="font-medium">{user.firstName} {user.lastName}</p>
+              <p className="font-medium text-lg">{user.firstName} {user.lastName}</p>
               <p className="text-sm text-gray-500">{user.email}</p>
               <p className="text-xs text-gray-400">
                 Joined: {new Date(user.createdAt).toLocaleDateString()}
@@ -92,11 +96,11 @@ export const UserManagement = () => {
               <select
                 value={user.role}
                 onChange={(e) => handleRoleChange(user.uid, e.target.value as UserRole)}
-                className="p-2 border rounded"
+                className="p-2 border rounded bg-white shadow"
               >
-                <option value="student">Student</option>
-                <option value="teacher">Teacher</option>
-                <option value="admin">Administrator</option>
+                <option value="student">Estudiante</option>
+                <option value="teacher">Docente</option>
+                <option value="admin">Administrador</option>
               </select>
 
               <button

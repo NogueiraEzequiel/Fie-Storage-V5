@@ -40,7 +40,7 @@ export const ProfileDialog = ({
           setPhotoURL(data.photoURL || '');
         }
       } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error('Error al cargar el perfil:', error);
       }
     };
 
@@ -55,12 +55,11 @@ export const ProfileDialog = ({
   };
 
   if (!isOpen) return null;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Profile Settings</h2>
+          <h2 className="text-2xl font-bold">Configuración de Perfil</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -75,7 +74,7 @@ export const ProfileDialog = ({
               {photoURL ? (
                 <img
                   src={photoURL}
-                  alt="Profile"
+                  alt="Perfil"
                   className="w-32 h-32 rounded-full object-cover"
                 />
               ) : (
@@ -98,7 +97,7 @@ export const ProfileDialog = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                First Name
+                Nombre
               </label>
               <input
                 type="text"
@@ -109,7 +108,7 @@ export const ProfileDialog = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name
+                Apellido
               </label>
               <input
                 type="text"
@@ -119,10 +118,9 @@ export const ProfileDialog = ({
               />
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              Correo Electrónico
             </label>
             <input
               type="email"
@@ -136,7 +134,7 @@ export const ProfileDialog = ({
             onClick={handleUpdateProfile}
             className="w-full py-2 bg-blue-800 text-white rounded hover:bg-blue-900 transition-colors disabled:opacity-50"
           >
-            Update Profile
+            Actualizar Perfil
           </button>
         </div>
       </div>

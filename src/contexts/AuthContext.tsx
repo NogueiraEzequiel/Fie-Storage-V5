@@ -43,25 +43,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(userDoc.data().role as UserRole);
       }
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error('Error al obtener el rol del usuario:', error);
     }
   };
 
   const register = async (firstName: string, lastName: string, email: string, password: string) => {
     if (!email.endsWith('@fie.undef.edu.ar')) {
-      throw new Error('Only @fie.undef.edu.ar email addresses are allowed');
+      throw new Error('Solo se permiten direcciones de correo @fie.undef.edu.ar');
     }
 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     
-    // Determine role based on email pattern
+    // Determina el rol basado en el patrón de correo electrónico
     const role: UserRole = email.includes('profesor') ? 'teacher' : 'student';
     
+    // Crear el documento del usuario en Firestore con todos los atributos necesarios
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       email: email,
       role: role,
       firstName: firstName,
       lastName: lastName,
+      displayName: `${firstName} ${lastName}`,
       createdAt: new Date().toISOString()
     });
 

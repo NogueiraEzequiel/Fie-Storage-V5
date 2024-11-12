@@ -9,19 +9,21 @@ interface FiltersProps {
   selectedCareer: string;
   selectedSubject: string;
   selectedYear: string;
+  subjects: string[];
+  years: string[];
 }
 
-export const Filters = ({
+const Filters = ({
   onCareerChange,
   onSubjectChange,
   onYearChange,
   selectedCareer,
   selectedSubject,
-  selectedYear
+  selectedYear,
+  subjects,
+  years
 }: FiltersProps) => {
-  const [careers, setCareers] = useState<any>({});
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [years, setYears] = useState<string[]>([]);
+  const [careers, setCareers] = useState<{ [key: string]: any }>({});
 
   useEffect(() => {
     const loadCareers = async () => {
@@ -36,23 +38,11 @@ export const Filters = ({
     loadCareers();
   }, []);
 
-  useEffect(() => {
-    if (selectedCareer) {
-      setSubjects(Object.keys(careers[selectedCareer]?.Materias || {}));
-    }
-  }, [selectedCareer, careers]);
-
-  useEffect(() => {
-    if (selectedCareer && selectedSubject) {
-      setYears(careers[selectedCareer]?.Materias[selectedSubject] || []);
-    }
-  }, [selectedCareer, selectedSubject, careers]);
-
   return (
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Career
+          Carrera
         </label>
         <select
           value={selectedCareer}
@@ -60,7 +50,7 @@ export const Filters = ({
           className="w-full p-2 border rounded"
           required
         >
-          <option value="">Select Career</option>
+          <option value="">Selecciona una carrera</option>
           {Object.keys(careers).map(career => (
             <option key={career} value={career}>{career}</option>
           ))}
@@ -69,7 +59,7 @@ export const Filters = ({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Subject
+          Materia
         </label>
         <select
           value={selectedSubject}
@@ -78,7 +68,7 @@ export const Filters = ({
           required
           disabled={!selectedCareer}
         >
-          <option value="">Select Subject</option>
+          <option value="">Selecciona una materia</option>
           {subjects.map(subject => (
             <option key={subject} value={subject}>{subject}</option>
           ))}
@@ -87,7 +77,7 @@ export const Filters = ({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Academic Year
+          Año Lectivo
         </label>
         <select
           value={selectedYear}
@@ -96,8 +86,8 @@ export const Filters = ({
           required
           disabled={!selectedSubject}
         >
-          <option value="">Select Academic Year</option>
-          {years.map(year => (
+          <option value="">Selecciona un año lectivo</option>
+          {(years instanceof Array ? years : []).map(year => ( // Asegurarse de que years siempre sea un array
             <option key={year} value={year}>{year}</option>
           ))}
         </select>
@@ -105,3 +95,5 @@ export const Filters = ({
     </div>
   );
 };
+
+export default Filters;

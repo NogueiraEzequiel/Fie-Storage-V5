@@ -4,79 +4,70 @@ import { useAuth } from '../contexts/AuthContext';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { createUserWithEmailAndPassword, UserCredential } from 'firebase/auth';
+import { auth } from '../lib/firebase'; // Importar auth correctamente
 
 const registerSchema = z.object({
   email: z.string()
-    .email('Invalid email address')
+    .email('Dirección de correo electrónico no válida')
     .refine(email => email.endsWith('@fie.undef.edu.ar'), {
-      message: 'Only @fie.undef.edu.ar email addresses are allowed'
+      message: 'Solo se permiten direcciones de correo @fie.undef.edu.ar'
     }),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string(),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required')
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: 'Las contraseñas no coinciden',
   path: ["confirmPassword"]
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const Register = () => {
-  const { register: registerUser, createUserWithEmailAndPassword } = useAuth();
+  const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
-  
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
+  const [loading, setLoading] = useState(false);
+
+  const { register: registerForm, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema)
   });
 
   const onSubmit = async (data: RegisterFormData) => {
+    setLoading(true);
     try {
       setError('');
-      await createUserWithEmailAndPassword(data.email, data.password);
-      await registerUser(data.firstName, data.lastName, data.email, data.password); // Ajustamos los argumentos aquí
-      navigate('/');
-    } catch (err) {
-      setError('Failed to create an account');
+      const userCredential: UserCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+      if (user) {
+        await registerUser("", "", user.email || "", user.uid); // Registrar datos iniciales del usuario
+      }
+      navigate('/complete-profile'); // Redirigir a la página para completar el perfil
+    } catch (err: unknown) {
+      console.error('Error en la creación de la cuenta:', err);
+      if (err instanceof Error) {
+        if (err.message.includes('auth/email-already-in-use')) {
+          setError('El correo electrónico ya está en uso');
+        } else {
+          setError('Error al crear la cuenta');
+        }
+      } else {
+        setError('Error desconocido');
+      }
+    } finally {
+      setLoading(false);
     }
   };
-
   return (
     <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Register</h2>
+      <h2 className="text-2xl font-bold mb-6">Registrarse</h2>
       {error && <div className="bg-red-100 text-red-700 p-3 mb-4 rounded">{error}</div>}
       
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block mb-1">First Name</label>
-          <input
-            type="text"
-            {...register('firstName')}
-            className="w-full p-2 border rounded"
-          />
-          {errors.firstName && (
-            <span className="text-red-500 text-sm">{errors.firstName.message}</span>
-          )}
-        </div>
-
-        <div>
-          <label className="block mb-1">Last Name</label>
-          <input
-            type="text"
-            {...register('lastName')}
-            className="w-full p-2 border rounded"
-          />
-          {errors.lastName && (
-            <span className="text-red-500 text-sm">{errors.lastName.message}</span>
-          )}
-        </div>
-
-        <div>
-          <label className="block mb-1">Email (@fie.undef.edu.ar)</label>
+          <label className="block mb-1">Correo Electrónico (@fie.undef.edu.ar)</label>
           <input
             type="email"
-            {...register('email')}
+            {...registerForm('email')}
             className="w-full p-2 border rounded"
           />
           {errors.email && (
@@ -85,10 +76,10 @@ export const Register = () => {
         </div>
 
         <div>
-          <label className="block mb-1">Password</label>
+          <label className="block mb-1">Contraseña</label>
           <input
             type="password"
-            {...register('password')}
+            {...registerForm('password')}
             className="w-full p-2 border rounded"
           />
           {errors.password && (
@@ -97,10 +88,10 @@ export const Register = () => {
         </div>
 
         <div>
-          <label className="block mb-1">Confirm Password</label>
+          <label className="block mb-1">Confirmar Contraseña</label>
           <input
             type="password"
-            {...register('confirmPassword')}
+            {...registerForm('confirmPassword')}
             className="w-full p-2 border rounded"
           />
           {errors.confirmPassword && (
@@ -111,8 +102,9 @@ export const Register = () => {
         <button
           type="submit"
           className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          disabled={loading}
         >
-          Register
+          {loading ? 'Registrando...' : 'Registrarse'}
         </button>
       </form>
     </div>

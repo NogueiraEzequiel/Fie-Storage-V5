@@ -24,7 +24,7 @@ export const Profile = () => {
           setProfileData(userDoc.data());
         }
       } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error('Error al cargar el perfil:', error);
       } finally {
         setLoading(false);
       }
@@ -52,7 +52,7 @@ export const Profile = () => {
         photoURL
       }));
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      console.error('Error al subir la foto:', error);
     } finally {
       setUploadingPhoto(false);
     }
@@ -77,7 +77,7 @@ export const Profile = () => {
       }));
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error al actualizar el perfil:', error);
     } finally {
       setLoading(false);
     }
@@ -85,18 +85,17 @@ export const Profile = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
+      <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-800"></div>
       </div>
     );
   }
-
   if (!currentUser || !profileData) {
-    return <div>No profile data available</div>;
+    return <div>No hay datos de perfil disponibles</div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm">
+    <div className="max-w-full mx-auto bg-white rounded-lg shadow-sm overflow-auto">
       <ProfileHeader
         user={currentUser}
         profileData={profileData}
@@ -107,17 +106,17 @@ export const Profile = () => {
       />
 
       <div className="p-6 border-t">
-        <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
+        <h2 className="text-xl font-semibold mb-4">Información de Contacto</h2>
         <div className="space-y-2">
           <p className="text-gray-600">
-            <span className="font-medium">Name:</span> {profileData.firstName} {profileData.lastName}
+            <span className="font-medium">Nombre:</span> {profileData.firstName} {profileData.lastName}
           </p>
           <p className="text-gray-600">
-            <span className="font-medium">Email:</span> {currentUser.email}
+            <span className="font-medium">Correo Electrónico:</span> {currentUser.email}
           </p>
           {profileData.department && (
             <p className="text-gray-600">
-              <span className="font-medium">Department:</span> {profileData.department}
+              <span className="font-medium">Departamento:</span> {profileData.department}
             </p>
           )}
         </div>
@@ -127,11 +126,10 @@ export const Profile = () => {
         onClick={() => setIsDialogOpen(true)}
         className="w-full py-2 bg-blue-800 text-white rounded hover:bg-blue-900 transition-colors"
       >
-        Edit Profile
+        Editar Perfil
       </button>
 
       <ActivityHistory userId={currentUser.uid} />
-
       <ProfileDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
