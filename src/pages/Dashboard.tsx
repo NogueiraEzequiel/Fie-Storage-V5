@@ -8,7 +8,7 @@ import { FolderManagementDialog } from '../components/FolderManagementDialog';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { FolderCard } from '../components/FolderCard';
 import { FileCard } from '../components/FileCard';
-import { HardHat, Settings, UserRoundCog, FolderPlus, UploadCloud } from 'lucide-react'; // Añadimos el icono UploadCloud
+import { HardHat, Settings, UserRoundCog, FolderPlus, UploadCloud } from 'lucide-react'; // Añadimos el ícono UploadCloud
 import { AdminFilters } from '../components/AdminFilters'; // Importa el componente AdminFilters
 import { UserManagement } from '../components/UserManagement'; // Importa el componente de administración de usuarios
 import { doc, getDoc } from 'firebase/firestore'; // Volvemos a importar setDoc para la creación de documentos
@@ -24,7 +24,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [, setFolders] = useState<FolderItem[]>([]); // Declaramos `folders` pero la usamos correctamente más adelante
+  const [folders, setFolders] = useState<FolderItem[]>([]); // Declaramos `folders` y lo usamos correctamente
   const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
@@ -79,7 +79,6 @@ export const Dashboard = () => {
   useEffect(() => {
     loadContent();
   }, [currentUser, currentPath]);
-
   useEffect(() => {
     const loadCareers = async () => {
       const docRef = doc(db, 'config', 'careers');
@@ -92,6 +91,7 @@ export const Dashboard = () => {
     };
     loadCareers();
   }, []);
+
   const handleFolderClick = (path: string) => {
     navigate(`/folder/${path}`);
   };
@@ -158,6 +158,12 @@ export const Dashboard = () => {
     setSelectedCareer(career);
     setShowUpload(false); // Ocultar el área de carga de archivos al cambiar de carrera
     navigate('/'); // Navegar a la raíz de Firebase Storage
+    if (career) {
+      const filtered = folders.filter(folder => careers[career]?.Materias[folder.name] ?? false);
+      setFilteredFolders(filtered);
+    } else {
+      setFilteredFolders(folders); // Mostrar todas las carpetas si no hay carrera seleccionada
+    }
   };
 
   // Función para manejar la visibilidad del menú AdminFilters
@@ -174,6 +180,7 @@ export const Dashboard = () => {
   const toggleUpload = () => {
     setShowUpload(!showUpload);
   };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
@@ -190,7 +197,6 @@ export const Dashboard = () => {
       </div>
     );
   }
-  
   const paths = currentPath ? currentPath.split('/') : [];
   return (
     <div className="flex min-h-screen">
@@ -234,6 +240,14 @@ export const Dashboard = () => {
             )}
             {currentUser && userRole === 'admin' && (
               <>
+                {/* Botón para mostrar/ocultar componente de creación de carpetas */}
+                <button
+                  onClick={() => setShowCreateFolderDialog(true)}
+                  className="px-4 py-2 rounded flex items-center gap-2 bg-blue-800 text-white"
+                >
+                  <FolderPlus className="w-6 h-6" />
+                  Crear Carpeta
+                </button>
                 {/* Botón para Mostrar/Ocultar AdminFilters */}
                 <button
                   onClick={toggleAdminFilters}
@@ -273,7 +287,6 @@ export const Dashboard = () => {
             <AdminFilters onToggleSubject={() => {}} /> {/* No necesitamos marcar cambios pendientes aquí */}
           </div>
         )}
-
         {showUserManagement && (
           <div className="p-4">
             <UserManagement />

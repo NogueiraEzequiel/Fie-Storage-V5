@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Folder, Check, Trash2, PlusCircle, Trash } from 'lucide-react'; // Usamos los íconos correctos
+import { Folder, Check, Trash2, PlusCircle, Trash } from 'lucide-react';
 import { FolderItem } from '../types';
 import { listFiles } from '../utils/storage';
 
@@ -12,22 +12,22 @@ interface AdminFiltersProps {
 }
 
 export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
-  const [careers, setCareers] = useState<any>({});
+  const [careers, setCareers] = useState<{ [key: string]: { Materias: { [key: string]: boolean } } }>({});
   const [currentCareer, setCurrentCareer] = useState(initialCareer);
-  const [selectedCareer, setSelectedCareer] = useState<string>('');
+  const [selectedCareer, setSelectedCareer] = useState('');
   const [allFolders, setAllFolders] = useState<FolderItem[]>([]);
-  const [pendingChanges, setPendingChanges] = useState<boolean>(false); // Nuevo estado para cambios pendientes
-  const [showAddCareerModal, setShowAddCareerModal] = useState<boolean>(false); // Nuevo estado para el modal
-  const [showDeleteCareerModal, setShowDeleteCareerModal] = useState<boolean>(false); // Nuevo estado para el modal de eliminar carrera
-  const [showSuccessMessage, setShowSuccessMessage] = useState<string>(''); // Nuevo estado para mensaje de éxito
-  const [savingChanges, setSavingChanges] = useState<boolean>(false); // Nuevo estado para la animación de guardado
+  const [pendingChanges, setPendingChanges] = useState(false);
+  const [showAddCareerModal, setShowAddCareerModal] = useState(false);
+  const [showDeleteCareerModal, setShowDeleteCareerModal] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState('');
+  const [savingChanges, setSavingChanges] = useState(false);
 
   useEffect(() => {
     const loadCareers = async () => {
       const docRef = doc(db, 'config', 'careers');
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        setCareers(docSnap.data());
+        setCareers(docSnap.data() as { [key: string]: { Materias: { [key: string]: boolean } } });
       } else {
         console.log('No such document!');
       }
@@ -36,22 +36,23 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
   }, []);
 
   useEffect(() => {
-    // Cargar todas las carpetas reales desde la ruta principal
     const listAllFolders = async () => {
-      const { folders } = await listFiles(''); // Ajustamos esta función para cargar carpetas reales desde la raíz
-      const visibleFolders = folders.filter(folder => folder.name !== 'profile-photos'); // Filtrar carpeta 'profile-photos'
+      const { folders } = await listFiles('');
+      const visibleFolders = folders.filter(folder => folder.name !== 'profile-photos');
       setAllFolders(visibleFolders);
     };
     listAllFolders();
   }, []);
+
   const handleCareerChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     if (pendingChanges) {
-      setPendingChanges(false); // Restablecer cambios pendientes al cambiar de carrera
+      setPendingChanges(false);
     }
     const selectedCareer = event.target.value;
     setSelectedCareer(selectedCareer);
     setCurrentCareer({ name: selectedCareer, subjects: careers[selectedCareer]?.Materias || {} });
   };
+
   const handleAddCareerModalChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setCurrentCareer({ ...currentCareer, name: event.target.value });
   };
@@ -59,7 +60,7 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
   const handleAddCareer = async () => {
     setSavingChanges(true);
     if (currentCareer.name && !careers[currentCareer.name]) {
-      const updatedCareers = { ...careers, [currentCareer.name]: { Materias: {} as { [key: string]: boolean } } };
+      const updatedCareers = { ...careers, [currentCareer.name]: { Materias: {} } };
       setCareers(updatedCareers);
       await setDoc(doc(db, 'config', 'careers'), updatedCareers);
       setCurrentCareer(initialCareer);
@@ -67,7 +68,7 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
         setSavingChanges(false);
         setShowAddCareerModal(false);
         setShowSuccessMessage('¡Carrera Creada Exitosamente!');
-      }, 2000); // Simulamos el tiempo de guardado
+      }, 2000);
       setTimeout(() => setShowSuccessMessage(''), 4000);
     }
   };
@@ -85,37 +86,38 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
         setSavingChanges(false);
         setShowDeleteCareerModal(false);
         setShowSuccessMessage(`La Carrera "${selectedCareer}" Fue Eliminada Exitosamente`);
-      }, 2000); // Simulamos el tiempo de guardado
+      }, 2000);
       setTimeout(() => setShowSuccessMessage(''), 4000);
     }
   };
 
   const handleToggleSubject = (subject: string) => {
-    const updatedSubjects: { [key: string]: boolean } = { ...currentCareer.subjects, [subject]: !currentCareer.subjects[subject] };
+    const updatedSubjects = { ...currentCareer.subjects, [subject]: !currentCareer.subjects[subject] };
     setCurrentCareer({ ...currentCareer, subjects: updatedSubjects });
-    setPendingChanges(true); // Marcar cambios pendientes
+    setPendingChanges(true);
   };
 
   const handleSaveChanges = async () => {
-    setSavingChanges(true); // Iniciar la animación de guardado
+    setSavingChanges(true);
     const updatedCareers = {
       ...careers,
       [currentCareer.name]: { Materias: currentCareer.subjects }
     };
     setCareers(updatedCareers);
     await setDoc(doc(db, 'config', 'careers'), updatedCareers);
-    onToggleSubject(currentCareer.name, currentCareer.name); // Comunica los cambios al Dashboard
-    setSavingChanges(false); // Finalizar la animación de guardado
-    setPendingChanges(false); // Restablecer cambios pendientes
+    onToggleSubject(currentCareer.name, currentCareer.name);
+    setSavingChanges(false);
+    setPendingChanges(false);
     setShowSuccessMessage('¡Cambios Guardados Exitosamente!');
     setTimeout(() => {
       setShowSuccessMessage('');
-    }, 2000); // Ocultar el mensaje después de 2 segundos
+    }, 2000);
   };
+
   return (
     <div className="max-w-full mx-auto p-8 bg-white rounded-lg shadow-md h-full overflow-auto">
       <h2 className="text-3xl font-bold mb-6 text-center text-blue-800">Administrar Carreras</h2>
-      
+  
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">Seleccionar Carrera</label>
         <select
@@ -129,7 +131,17 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
           ))}
         </select>
       </div>
-
+  
+      {!selectedCareer && (
+        <button
+          onClick={() => setShowAddCareerModal(true)}
+          className="bg-blue-800 text-white px-4 py-2 rounded hover:bg-blue-900 flex items-center gap-2 mb-4"
+        >
+          <PlusCircle className="w-6 h-6" />
+          Agregar Carrera
+        </button>
+      )}
+  
       {selectedCareer && (
         <>
           <div className="mb-6">
@@ -146,16 +158,15 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="flex space-x-4 justify-end">
-            <button
-              onClick={() => setShowDeleteCareerModal(true)} // Mostrar modal de eliminación
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center gap-2"
-            >
-              <Trash2 className="w-6 h-6" />
-              Eliminar Carrera
-            </button>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowDeleteCareerModal(true)}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center gap-2"
+              >
+                <Trash2 className="w-6 h-6" />
+                Eliminar Carrera
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -181,7 +192,7 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
       {showAddCareerModal && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={() => setShowAddCareerModal(false)} // Cerrar el modal al hacer clic fuera
+          onClick={() => setShowAddCareerModal(false)}
         >
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl" onClick={(e) => e.stopPropagation()}>
             {savingChanges ? (
@@ -208,11 +219,11 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
           </div>
         </div>
       )}
-
+  
       {showDeleteCareerModal && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={() => setShowDeleteCareerModal(false)} // Cerrar el modal al hacer clic fuera
+          onClick={() => setShowDeleteCareerModal(false)}
         >
           <div className="bg-white p-6 rounded-lg shadow-lg max-w-full sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl" onClick={(e) => e.stopPropagation()}>
             {savingChanges ? (
@@ -242,7 +253,7 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
           </div>
         </div>
       )}
-
+  
       {showSuccessMessage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className={`bg-white p-6 rounded-lg shadow-lg ${showSuccessMessage.includes('Eliminada') ? 'text-red-600' : 'text-green-600'}`}>
@@ -252,4 +263,4 @@ export const AdminFilters = ({ onToggleSubject }: AdminFiltersProps) => {
       )}
     </div>
   );
-};
+}
