@@ -1,5 +1,5 @@
 import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
-import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { storage, db } from '../lib/firebase';
 import { ALLOWED_FILE_TYPES, FileMetadata, FileItem, FolderItem } from '../types';
 

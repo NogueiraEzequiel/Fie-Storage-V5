@@ -1,4 +1,4 @@
-import { Download, MessageSquare, Star, Trash2 } from 'lucide-react';
+import { Download, MessageSquare, Star, Trash2, FileImage, FileText } from 'lucide-react';
 import { FileItem } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -29,10 +29,28 @@ export const FileCard = ({ file, onDelete, onShowComments }: FileCardProps) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const renderFileIcon = (fileType?: string) => {
+    console.log("File type:", fileType); // Depuración
+    if (fileType === 'image/jpeg') {
+      return <FileImage size={50} className="text-blue-800" />; // Icono más grande para imágenes JPG
+    }
+    return <FileText size={24} className="text-blue-800" />; // Icono más grande para otros tipos de archivos
+  };
+
+  if (!file || !file.metadata) {
+    console.error("Invalid file data:", file);
+    return null;
+  }
+
+  console.log("Rendering file:", file);
+
   return (
     <div className="flex flex-col p-4 bg-white rounded-lg shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex items-center">
+          <div className="mr-3">
+            {renderFileIcon(file.metadata.type)}
+          </div>
           <div>
             <p className="font-medium text-gray-700">{file.name}</p>
             <p className="text-sm text-gray-500">

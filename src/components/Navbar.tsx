@@ -1,36 +1,26 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, Upload, FolderOpen, User } from 'lucide-react';
+import { LogOut, FolderOpen, User } from 'lucide-react';
 
 export const Navbar = () => {
-  const { currentUser, userRole, logout } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   return (
     <nav className="bg-white shadow">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="text-2xl font-bold text-blue-800 tracking-wide">
+          <Link to="/" className="text-4xl font-bold text-blue-800 tracking-wide">
             FIE-Storage
           </Link>
 
           {currentUser ? (
             <div className="flex items-center space-x-4">
-              {userRole === 'student' && (
-                <Link
-                  to="/upload"
-                  className="flex items-center space-x-1 text-gray-700 hover:text-gray-900"
-                >
-                  <Upload size={20} />
-                  <span>Upload</span>
-                </Link>
-              )}
-
               <Link
                 to="/"
                 className="flex items-center space-x-1 text-gray-700 hover:text-gray-900"
               >
                 <FolderOpen size={20} />
-                <span>Files</span>
+                <span>Repositorio</span>
               </Link>
 
               <Link
@@ -38,7 +28,7 @@ export const Navbar = () => {
                 className="flex items-center space-x-1 text-gray-700 hover:text-gray-900"
               >
                 <User size={20} />
-                <span>Profile</span>
+                <span>Perfil</span>
               </Link>
 
               <button
@@ -46,7 +36,7 @@ export const Navbar = () => {
                 className="flex items-center space-x-1 text-gray-700 hover:text-gray-900"
               >
                 <LogOut size={20} />
-                <span>Logout</span>
+                <span>Cerrar Sesión</span>
               </button>
             </div>
           ) : (
@@ -55,13 +45,13 @@ export const Navbar = () => {
                 to="/login"
                 className="text-gray-700 hover:text-gray-900"
               >
-                Login
+                Iniciar Sesión
               </Link>
               <Link
                 to="/register"
                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               >
-                Register
+                Registrarse
               </Link>
             </div>
           )}

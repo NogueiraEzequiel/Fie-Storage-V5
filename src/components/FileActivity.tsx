@@ -85,6 +85,7 @@ export const FileActivity = ({ userId, userRole }: FileActivityProps) => {
 
     loadActivities();
   }, [userId, userRole]);
+
   const getActivityIcon = (type: 'upload' | 'comment' | 'grade') => {
     switch (type) {
       case 'upload':
@@ -111,9 +112,8 @@ export const FileActivity = ({ userId, userRole }: FileActivityProps) => {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold mb-4">
-        {userRole === 'student' ? 'Upload History' : 'Activity History'}
+        {userRole === 'student' ? 'Historial de Subidas' : 'Historial de Actividades'}
       </h3>
-      
       {activities.length > 0 ? (
         activities.map((activity) => (
           <div
@@ -133,7 +133,7 @@ export const FileActivity = ({ userId, userRole }: FileActivityProps) => {
           </div>
         ))
       ) : (
-        <p className="text-center text-gray-500 py-4">No activity yet</p>
+        <p className="text-center text-gray-500 py-4">No hay actividades aún</p>
       )}
     </div>
   );

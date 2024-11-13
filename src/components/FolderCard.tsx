@@ -1,6 +1,6 @@
 import React from 'react';
 import { FolderItem } from '../types';
-import { Folder } from 'lucide-react'; // Importar el ícono de carpeta de Lucide
+import { Folder, PencilLine, X } from 'lucide-react'; // Importar los íconos necesarios de Lucide
 import { useAuth } from '../contexts/AuthContext'; // Importar el contexto de autenticación
 
 interface FolderCardProps {
@@ -20,22 +20,18 @@ export const FolderCard: React.FC<FolderCardProps> = ({ folder, onClick, onRenam
         <span>{folder.name}</span>
       </div>
       {userRole === 'admin' && ( // Mostrar las opciones solo si el usuario es administrador
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={(e) => { e.stopPropagation(); onRename(); }}
             className="text-blue-600 hover:text-blue-800"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 4h2a1 1 0 011 1v1h1a1 1 0 011 1v2a1 1 0 01-1 1h-1v4h-2V10H9V6a1 1 0 011-1h1V4z"></path>
-            </svg>
+            <PencilLine className="w-6 h-6" /> {/* Usar el ícono PencilLine de Lucide */}
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="text-red-600 hover:text-red-800"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+            <X className="w-6 h-6" /> {/* Usar el ícono X de Lucide */}
           </button>
         </div>
       )}

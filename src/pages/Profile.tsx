@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db, storage } from '../lib/firebase';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { ProfileDialog } from '../components/ProfileDialog';
-import { ActivityHistory } from '../components/ActivityHistory';
+import { FileActivity } from '../components/FileActivity'; // Importar FileActivity
 
 export const Profile = () => {
   const { currentUser, userRole } = useAuth();
@@ -129,7 +129,10 @@ export const Profile = () => {
         Editar Perfil
       </button>
 
-      <ActivityHistory userId={currentUser.uid} />
+      <div className="p-6 border-t">
+        {userRole && <FileActivity userId={currentUser.uid} userRole={userRole} />}
+      </div>
+
       <ProfileDialog
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}

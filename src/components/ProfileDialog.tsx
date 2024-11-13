@@ -54,6 +54,13 @@ export const ProfileDialog = ({
     onClose();
   };
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      onPhotoUpload(event);
+      setPhotoURL(URL.createObjectURL(event.target.files[0])); // Actualizar la foto de perfil inmediatamente
+    }
+  };
+
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -87,7 +94,7 @@ export const ProfileDialog = ({
                   type="file"
                   className="hidden"
                   accept="image/*"
-                  onChange={onPhotoUpload}
+                  onChange={handlePhotoUpload} // Usar `handlePhotoUpload` en lugar de `onPhotoUpload`
                   disabled={uploadingPhoto}
                 />
                 <Camera size={20} />

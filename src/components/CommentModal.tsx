@@ -4,7 +4,7 @@ import { X, Send, Star } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Comment, FileGrade } from '../types';
 import { db } from '../lib/firebase';
-import { doc, updateDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, onSnapshot, arrayRemove, getDoc } from 'firebase/firestore'; // Agregado getDoc
 
 interface CommentModalProps {
   fileId: string;
@@ -15,7 +15,7 @@ interface CommentModalProps {
 }
 
 export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }: CommentModalProps) => {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [grade, setGrade] = useState<number>(currentGrade?.score || 0);
@@ -34,7 +34,7 @@ export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }:
   useEffect(() => {
     if (!fileId || !isOpen) return;
 
-    const fileRef = doc(db, 'files', fileId);
+    const fileRef = doc(db, 'studentWorks', fileId);
     const unsubscribe = onSnapshot(fileRef, (doc) => {
       if (doc.exists()) {
         const data = doc.data();
@@ -47,7 +47,10 @@ export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }:
   }, [fileId, isOpen]);
 
   const handleAddComment = async () => {
-    if (!currentUser || !newComment.trim()) return;
+    if (!currentUser || !newComment.trim() || userRole !== 'teacher' || !fileId) {
+      setError('Invalid request. Please check your input.');
+      return;
+    }
 
     try {
       setError(null);
@@ -60,7 +63,7 @@ export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }:
         createdAt: new Date().toISOString()
       };
 
-      await updateDoc(doc(db, 'files', fileId), {
+      await updateDoc(doc(db, 'studentWorks', fileId), {
         comments: arrayUnion(comment)
       });
       setNewComment('');
@@ -70,7 +73,10 @@ export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }:
     }
   };
   const handleGradeChange = async (newGrade: number) => {
-    if (!currentUser || !canEdit) return;
+    if (!currentUser || !canEdit || userRole !== 'teacher' || !fileId) {
+      setError('Invalid request. Please check your input.');
+      return;
+    }
 
     try {
       setError(null);
@@ -82,10 +88,35 @@ export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }:
         lastModified: currentGrade ? new Date().toISOString() : undefined
       };
 
-      await updateDoc(doc(db, 'files', fileId), { grade: gradeData });
+      await updateDoc(doc(db, 'studentWorks', fileId), { grade: gradeData });
     } catch (error) {
       console.error('Error updating grade:', error);
       setError('Failed to update grade');
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!currentUser || !fileId) {
+      setError('Invalid request. Please check your input.');
+      return;
+    }
+
+    try {
+      setError(null);
+      const fileRef = doc(db, 'studentWorks', fileId);
+      const fileDoc = (await getDoc(fileRef)).data();
+      const commentToDelete = fileDoc?.comments.find((comment: Comment) => comment.id === commentId);
+
+      if (commentToDelete && commentToDelete.authorId === currentUser.uid) {
+        await updateDoc(fileRef, {
+          comments: arrayRemove(commentToDelete)
+        });
+      } else {
+        setError("You can't delete this comment.");
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      setError('Failed to delete comment');
     }
   };
 
@@ -115,7 +146,7 @@ export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }:
             </button>
           </div>
           
-          {canEdit && (
+          {canEdit && userRole === 'teacher' && (
             <div className="mt-4 flex items-center">
               <Star className="text-yellow-500 mr-2" size={20} />
               <select
@@ -147,102 +178,40 @@ export const CommentModal = ({ fileId, isOpen, onClose, currentGrade, canEdit }:
                     {new Date(comment.createdAt).toLocaleString()}
                   </p>
                 </div>
+                {comment.authorId === currentUser?.uid && (
+                  <button
+                    onClick={() => handleDeleteComment(comment.id)}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
               <p className="text-gray-700">{comment.text}</p>
             </div>
           ))}
         </div>
-        <div className="sticky bottom-0 bg-white pt-4">
-          <div className="flex gap-2">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment..."
-              className="flex-1 p-2 border rounded resize-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
-              rows={2}
-            />
-            <button
-              onClick={handleAddComment}
-              disabled={!newComment.trim()}
-              className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-900 transition-colors disabled:opacity-50"
-            >
-              <Send size={20} />
-            </button>
+        {userRole === 'teacher' && (
+          <div className="sticky bottom-0 bg-white pt-4">
+            <div className="flex gap-2">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                className="flex-1 p-2 border rounded resize-none focus:ring-2 focus:ring-blue-800 focus:border-transparent"
+                rows={2}
+              />
+              <button
+                onClick={handleAddComment}
+                disabled={!newComment.trim()}
+                className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-900 transition-colors disabled:opacity-50"
+              >
+                <Send size={20} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </animated.div>
     </>
-  );
-};
-
-import { MessageSquare } from 'lucide-react';
-
-interface CommentSectionProps {
-  comments: Comment[];
-  onAddComment: (text: string) => Promise<void>;
-}
-
-export const CommentSection = ({ comments, onAddComment }: CommentSectionProps) => {
-  const { userRole } = useAuth();
-  const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!comment.trim() || isSubmitting) return;
-
-    setIsSubmitting(true);
-    try {
-      await onAddComment(comment);
-      setComment('');
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      alert('Failed to add comment');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center mb-4">
-        <MessageSquare size={20} className="text-blue-800 mr-2" />
-        <h2 className="text-lg font-semibold">Comments</h2>
-      </div>
-
-      <div className="space-y-4 mb-6">
-        {comments.map((comment) => (
-          <div key={comment.id} className="bg-gray-50 rounded p-4">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-sm font-medium text-blue-800">
-                {comment.authorEmail}
-              </span>
-              <span className="text-xs text-gray-500">
-                {new Date(comment.createdAt).toLocaleDateString()}
-              </span>
-            </div>
-            <p className="text-gray-700">{comment.text}</p>
-          </div>
-        ))}
-      </div>
-
-      {userRole === 'teacher' && (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Add a comment..."
-            className="flex-1 p-2 border rounded focus:ring-2 focus:ring-blue-800 focus:border-transparent"
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-4 py-2 bg-blue-800 text-white rounded hover:bg-blue-900 transition-colors disabled:opacity-50"
-          >
-            {isSubmitting ? 'Posting...' : 'Comment'}
-          </button>
-        </div>
-      )}
-    </div>
   );
 };

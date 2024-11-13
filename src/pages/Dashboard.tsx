@@ -11,7 +11,7 @@ import { FileCard } from '../components/FileCard';
 import { HardHat, Settings, UserRoundCog, FolderPlus, UploadCloud } from 'lucide-react'; // Añadimos el icono UploadCloud
 import { AdminFilters } from '../components/AdminFilters'; // Importa el componente AdminFilters
 import { UserManagement } from '../components/UserManagement'; // Importa el componente de administración de usuarios
-import { doc, getDoc, setDoc } from 'firebase/firestore'; // Volvemos a importar setDoc para la creación de documentos
+import { doc, getDoc } from 'firebase/firestore'; // Volvemos a importar setDoc para la creación de documentos
 import { db } from '../lib/firebase'; // Importa la instancia de Firestore
 import { FileUploadButton } from '../components/FileUploadButton'; // Importa el componente FileUploadButton
 
@@ -24,7 +24,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [folders, setFolders] = useState<FolderItem[]>([]); // Declaramos `folders` pero la usamos correctamente más adelante
+  const [, setFolders] = useState<FolderItem[]>([]); // Declaramos `folders` pero la usamos correctamente más adelante
   const [selectedFile, setSelectedFile] = useState<FileMetadata | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
@@ -36,6 +36,7 @@ export const Dashboard = () => {
   const [showAdminFilters, setShowAdminFilters] = useState(false); // Estado para controlar la visibilidad del menú de Admin
   const [showUserManagement, setShowUserManagement] = useState(false); // Estado para controlar la visibilidad del menú de administración de usuarios
   const [showUpload, setShowUpload] = useState(false); // Estado para mostrar/ocultar el componente de carga de archivos
+
   const loadContent = async () => {
     if (!currentUser) {
       setError('User is not authenticated.');
@@ -173,7 +174,6 @@ export const Dashboard = () => {
   const toggleUpload = () => {
     setShowUpload(!showUpload);
   };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
@@ -190,6 +190,7 @@ export const Dashboard = () => {
       </div>
     );
   }
+  
   const paths = currentPath ? currentPath.split('/') : [];
   return (
     <div className="flex min-h-screen">
@@ -254,21 +255,19 @@ export const Dashboard = () => {
           </div>
         </div>
         {showUpload && (
-  <div className="p-4 border rounded-lg bg-gray-50 mt-4">
-    <FileUploadButton
-      currentPath={currentPath}
-      career={selectedCareer}
-      subject={paths.length > 1 ? paths[1] : ''}
-      academicYear={paths.length > 2 ? paths[2] : ''}
-      onUploadComplete={() => {
-        setShowUpload(false); // Ocultar el área de carga después de subir
-        loadContent(); // Recargar contenido
-      }}
-    />
-  </div>
-)}
-
-
+          <div className="p-4 border rounded-lg bg-gray-50 mt-4">
+            <FileUploadButton
+              currentPath={currentPath}
+              career={selectedCareer}
+              subject={paths.length > 1 ? paths[1] : ''}
+              academicYear={paths.length > 2 ? paths[2] : ''}
+              onUploadComplete={() => {
+                setShowUpload(false); // Ocultar el área de carga después de subir
+                loadContent(); // Recargar contenido
+              }}
+            />
+          </div>
+        )}
         {showAdminFilters && (
           <div className="p-4">
             <AdminFilters onToggleSubject={() => {}} /> {/* No necesitamos marcar cambios pendientes aquí */}
@@ -305,17 +304,16 @@ export const Dashboard = () => {
       </div>
       {selectedFile && (
         <CommentModal
-          fileId={selectedFile!.id} // Agregamos "!" para asegurar que no es null
+          fileId={selectedFile.id} // Nos aseguramos de que `fileId` se pasa correctamente
           isOpen={showComments}
           onClose={() => {
             setShowComments(false);
             setSelectedFile(null);
           }}
-          currentGrade={selectedFile!.grade} // Agregamos "!" para asegurar que no es null
+          currentGrade={selectedFile.grade} // Aseguramos que la calificación actual se está pasando
           canEdit={true}
         />
       )}
-
       {folderToDelete && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-lg shadow-lg">
